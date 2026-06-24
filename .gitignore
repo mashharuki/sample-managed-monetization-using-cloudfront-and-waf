@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# CDK
+cdk/cdk.out/
+cdk-outputs.json
+*.d.ts
+!*.d.template.ts
+
+# Build output (site bundle is produced at deploy by CDK)
+site/dist/
+site/app.js
+
+# Local env / secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+**/.DS_Store
+
+# Locally-generated static seller payTo (regenerate by deleting)
+cdk/.seller-payto.json
+
+# Local MCP server config (per-developer, not shared)
+.mcp.json
+
+# Holmes scan artifacts (local)
+.holmes/
