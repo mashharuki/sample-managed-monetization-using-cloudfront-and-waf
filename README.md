@@ -78,6 +78,16 @@ curl -i "$(jq -r '.X402WafSample.DistributionUrl' cdk-outputs.json)/weather"
 3. Set the count > 1 and pick clients to **burst AI-bot traffic** through the proxy; the **WAF traffic** /
    **revenue** links open the AWS WAF AI-traffic console.
 
+> **Seeing your revenue in the WAF console.** This sample settles on **Base Sepolia testnet**, and the
+> revenue dashboard defaults to **mainnet**, so it shows **zero** until you switch it. In the WAF
+> **AI revenue payments** dashboard open **Dashboard settings** and set **Environment** to **Test** —
+> it re-queries with the testnet (`CurrencyMode: TEST`) filter and renders your payments (cards, chart,
+> tables). See [Revenue analytics](https://docs.aws.amazon.com/waf/latest/developerguide/waf-ai-traffic-monetization-analytics.html).
+>
+> <p align="center">
+>   <img src="docs/media/waf-console-environment-test.png" alt="WAF console → Dashboard settings → Environment: Test" width="480">
+> </p>
+
 **Teardown:** `cd cdk && npx cdk destroy`.
 
 ## Security
