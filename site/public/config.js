@@ -9,7 +9,7 @@ window.X402_CONFIG = {
     { path: "/sports", label: "Sports (Markdown)", contentType: "markdown" },
     { path: "/main.html", label: "Landing (HTML)", contentType: "html" },
   ],
-  payTo: "0x0000000000000000000000000000000000000000",
+  payTo: "0xe6AA1B60c4EC760668dB3C06d7A894c5Fd39D0aa",
   usdcAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
   chainId: 84532,
   faucetUrl: "https://faucet.circle.com/",

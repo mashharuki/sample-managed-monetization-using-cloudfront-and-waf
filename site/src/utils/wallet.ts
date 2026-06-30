@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   createPublicClient,
-  http,
   formatUnits,
+  http,
   type Address,
   type Hex,
 } from "viem";
-import { baseSepolia } from "viem/chains";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { baseSepolia } from "viem/chains";
 import { config } from "./config";
 
 export type StoredWallet = {

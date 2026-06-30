@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { StoredWallet } from "./wallet";
-import { config } from "./config";
+import { config } from "./utils/config";
+import type { StoredWallet } from "./utils/wallet";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 

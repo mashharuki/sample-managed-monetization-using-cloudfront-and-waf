@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { config, DEFAULT_USER_AGENTS } from "./config";
-import { useWallets } from "./wallet";
-import { WalletPicker } from "./WalletPicker";
 import { ContentView } from "./ContentView";
-import { payRoundTrip, callOnly, type Leg } from "./x402";
+import { config, DEFAULT_USER_AGENTS } from "./utils/config";
+import { useWallets } from "./utils/wallet";
+import { callOnly, payRoundTrip, type Leg } from "./utils/x402";
+import { WalletPicker } from "./WalletPicker";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const shortUA = (u: string) => u.split("/")[0].replace(/Bot$/i, "").trim() || u.slice(0, 14);
