@@ -1,15 +1,14 @@
-// CloudFront Function (JS runtime 2.0) — viewer-request, associated with every
-// monetized route behavior (/weather, /sports, /main.html).
+// CloudFront Function（JS ランタイム 2.0）— viewer-request。すべての収益化ルートの
+// ビヘイビア（/weather、/sports、/main.html）に関連付けられています。
 //
-// Edge order is: AWS WAF  ->  this CloudFront Function  ->  origin.
-// So WAF runs FIRST: an unpaid request gets a 402 from WAF and NEVER reaches this
-// function. Only a PAID request gets here — at which point we synthesize a mock
-// response. We demonstrate THREE content types so the buyer's renderer can show
-// JSON, Markdown, and HTML:
+// エッジの処理順序：AWS WAF  ->  この CloudFront Function  ->  オリジン。
+// WAF が最初に実行されます。未払いリクエストは WAF から 402 が返り、この関数には到達しません。
+// 支払い済みリクエストのみがここに到達し、モックレスポンスを生成します。
+// 購入者のレンダラーが JSON、Markdown、HTML を表示できるよう 3 種類のコンテンツタイプを示します：
 //
-//   /weather     -> application/json   (a weather reading; geo-aware + randomized)
-//   /sports      -> text/markdown      (a scores digest; randomized)
-//   /main.html   -> text/html          (a rich landing page)
+//   /weather     -> application/json   （天気情報；地理情報対応 + ランダム生成）
+//   /sports      -> text/markdown      （スコアダイジェスト；ランダム生成）
+//   /main.html   -> text/html          （リッチなランディングページ）
 function handler(event) {
   var req = event.request;
   var uri = req.uri || "/";
@@ -32,12 +31,12 @@ function handler(event) {
   function rint(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
 
   if (uri.indexOf("/sports") === 0) {
-    // Fictional teams (no real clubs).
+    // 架空のチーム（実在のクラブではありません）。
     var teams = ["Nimbus FC", "Vortex United", "Pixel Rovers", "Quasar SC", "Cobalt Kings",
       "Ember Owls", "Lunar Tide", "Granite Wolves", "Solstice AC", "Drift City"];
     function match() {
       var a = pick(teams), b = pick(teams);
-      while (b === a) b = pick(teams); // a team never plays itself
+      while (b === a) b = pick(teams); // 同じチームが対戦することはない
       var st = pick(["FT", "Q4", "Live", "HT", "90'+3"]);
       return "| " + a + " vs " + b + " | " + rint(0, 5) + " – " + rint(0, 5) + " | " + st + " |";
     }
@@ -73,7 +72,7 @@ function handler(event) {
     return resp("text/html", html);
   }
 
-  // default: /weather → JSON (randomized)
+  // デフォルト: /weather → JSON（ランダム生成）
   var tempC = rint(8, 31);
   var weather = {
     service: "x402-weather",

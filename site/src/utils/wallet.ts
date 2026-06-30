@@ -51,15 +51,15 @@ const ERC20_BALANCE_ABI = [
   },
 ] as const;
 
-/** Wallet manager: localStorage-backed, browser-only keys, live balance polling.
- *  Balances are tracked per-wallet (keyed by id) so a custom dropdown can show the
- *  USDC balance next to every wallet, not just the active one. */
+/** ウォレットマネージャー：localStorage バック、ブラウザ専用キー、ライブ残高ポーリング。
+ *  残高はウォレットごと（id をキー）に追跡されるため、カスタムドロップダウンで
+ *  アクティブなウォレットだけでなく、すべてのウォレットの USDC 残高を表示できます。 */
 export function useWallets() {
   const [wallets, setWallets] = useState<StoredWallet[]>([]);
   const [activeId, setActive] = useState<string | null>(null);
   const [balances, setBalances] = useState<Record<string, string>>({});
 
-  // Bootstrap: ensure at least one wallet exists.
+  // ブートストラップ：少なくとも 1 つのウォレットが存在することを確認します。
   useEffect(() => {
     let ws = load();
     if (ws.length === 0) {
@@ -73,7 +73,7 @@ export function useWallets() {
 
   const active = wallets.find((w) => w.id === activeId) ?? wallets[0] ?? null;
 
-  // Refresh USDC balances for EVERY stored wallet (so the dropdown shows each).
+  // 保存されたすべてのウォレットの USDC 残高を更新します（ドロップダウンで各残高を表示するため）。
   const refreshBalance = useCallback(async () => {
     const current = load();
     const entries = await Promise.all(
@@ -94,8 +94,8 @@ export function useWallets() {
     setBalances(Object.fromEntries(entries));
   }, []);
 
-  // Refresh balances on load + whenever the wallet set changes (NOT on a timer —
-  // callers also invoke refreshBalance() after each request/batch).
+  // ロード時とウォレットセット変更時に残高を更新します（タイマーではなく —
+  // 呼び出し元も各リクエスト/バッチ後に refreshBalance() を呼び出します）。
   useEffect(() => {
     if (wallets.length === 0) return;
     refreshBalance();

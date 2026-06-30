@@ -5,8 +5,8 @@ import { MonetizationStack } from "../lib/monetization-stack";
 
 const app = new App();
 
-// CLOUDFRONT-scope WAF WebACLs MUST live in us-east-1, and Lambda@Edge-adjacent
-// edge resources are simplest there too — so the whole sample is pinned to us-east-1.
+// CLOUDFRONT スコープの WAF WebACL は us-east-1 に配置する必要があり、Lambda@Edge 関連の
+// エッジリソースも同リージョンが最もシンプルなため、サンプル全体を us-east-1 に固定しています。
 new MonetizationStack(app, "X402WafSample", {
   env: { region: "us-east-1" },
   description:

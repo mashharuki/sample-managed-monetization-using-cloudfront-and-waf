@@ -13,9 +13,9 @@ type Props = {
   onRemove: (id: string) => void;
 };
 
-/** Custom wallet dropdown: the trigger shows the active wallet + balance; the open
- *  panel lists every wallet with its own balance and per-row copy / fund / delete,
- *  plus a "New wallet" action — so the outer toolbar isn't needed. */
+/** カスタムウォレットドロップダウン：トリガーはアクティブなウォレット + 残高を表示します。
+ *  開いたパネルはすべてのウォレットを残高とともに一覧表示し、行ごとにコピー/補充/削除ができます。
+ *  さらに「新しいウォレット」アクションもあります — そのため外部ツールバーは不要です。 */
 export function WalletPicker({ wallets, active, balances, onUse, onRegenerate, onRemove }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

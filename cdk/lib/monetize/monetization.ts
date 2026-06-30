@@ -1,48 +1,48 @@
 /**
- * AWS WAF native x402 monetization — the rule + config, as plain CloudFormation
- * property objects.
+ * AWS WAF ネイティブ x402 収益化 — ルールと設定を純粋な CloudFormation
+ * プロパティオブジェクトとして定義します。
  *
- * `MonetizationConfig` + the `Monetize` rule action ARE supported by CloudFormation
- * (AWS::WAFv2::WebACL), but the typed CDK L1 (`CfnWebACL`) in this aws-cdk-lib
- * version doesn't expose them yet — so the stack injects these via
- * `addPropertyOverride`. No custom resource, no runtime API call: it's all in the
- * one synthesized template.
+ * `MonetizationConfig` と `Monetize` ルールアクションは CloudFormation
+ * (AWS::WAFv2::WebACL) でサポートされていますが、この aws-cdk-lib バージョンの
+ * 型付き CDK L1 (`CfnWebACL`) にはまだ公開されていないため、スタックは
+ * `addPropertyOverride` 経由で注入します。カスタムリソースも実行時 API 呼び出しも
+ * 不要で、すべてが 1 つの合成済みテンプレートに含まれています。
  *
- * The whole posture is intentionally tiny:
- *   - default action = Allow (the human landing page at "/" is free)
- *   - ONE Monetize rule on /weather → every request gets 402 → pay → 200
+ * ポスチャは意図的に最小構成です：
+ *   - デフォルトアクション = Allow（"/" のランディングページは無料）
+ *   - /weather に 1 つの Monetize ルール → すべてのリクエストが 402 → 支払い → 200
  */
 
-/** Base Sepolia USDC contract — what the buyer pays with. */
+/** Base Sepolia USDC コントラクト — 購入者が支払いに使用するトークン。 */
 export const BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
-/** Bot Control managed-rule-group version. MUST be >= v6 (the group default is v1);
- *  v6 carries the AI bot org / category / verification labels the AI-traffic view
- *  shows. Run in Count (override) so it labels without blocking. */
+/** Bot Control マネージドルールグループのバージョン。v6 以上必須（グループのデフォルトは v1）。
+ *  v6 は AI トラフィックビューに表示される AI ボットの組織/カテゴリ/検証ラベルを持ちます。
+ *  Count（オーバーライド）で実行してブロックせずにラベル付けのみ行います。 */
 export const BOT_CONTROL_VERSION = "Version_6.0";
 
 export interface MonetizeRoute {
-  /** URI prefix to match, e.g. "/weather". */
+  /** マッチする URI プレフィックス（例: "/weather"）。 */
   path: string;
-  /** Price multiplier × the base Amount. */
+  /** 価格乗数 × ベース Amount。 */
   priceMultiplier: number;
-  /** Safe token for metric/rule names (e.g. "weather", "main-html"). */
+  /** メトリクス/ルール名に使える安全なトークン（例: "weather", "main-html"）。 */
   metricName: string;
 }
 
 export interface MonetizeInput {
-  /** Payee wallet (the seller's receiving address) for MonetizationConfig. */
+  /** MonetizationConfig 用の受取人ウォレット（販売者の受取アドレス）。 */
   walletAddress: string;
-  /** Base unit price in USDC. Default 0.001. */
+  /** USDC の基本単価。デフォルト 0.001。 */
   baseAmount?: string;
-  /** Metric-name prefix for CloudWatch visibility. */
+  /** CloudWatch の可視性のためのメトリクス名プレフィックス。 */
   metricPrefix: string;
-  /** The monetized routes (one Monetize rule each). */
+  /** 収益化するルート（それぞれ 1 つの Monetize ルール）。 */
   routes: MonetizeRoute[];
 }
 
-/** Rule 0 — Bot Control managed group (v6, Count: detect + label only, no block).
- *  Gives the WAF AI-traffic view the bot org/category/verification labels. */
+/** ルール 0 — Bot Control マネージドグループ（v6、Count: 検出+ラベルのみ、ブロックなし）。
+ *  WAF AI トラフィックビューにボットの組織/カテゴリ/検証ラベルを提供します。 */
 function botControlRule(metricPrefix: string): Record<string, unknown> {
   return {
     Name: "AWSBotControl",
@@ -66,20 +66,19 @@ function botControlRule(metricPrefix: string): Record<string, unknown> {
   };
 }
 
-/** Bot Control v6 (Count) first, then one terminating Monetize rule per route. */
+/** 最初に Bot Control v6 (Count)、次にルートごとに 1 つの終端 Monetize ルール。 */
 export function buildRules(input: MonetizeInput): Array<Record<string, unknown>> {
   const rules: Array<Record<string, unknown>> = [botControlRule(input.metricPrefix)];
   input.routes.forEach((route, i) => {
     rules.push({
       Name: `Monetize-${route.metricName}`,
-      // Priority 0 is Bot Control; Monetize rules start at 1.
+      // 優先度 0 は Bot Control。Monetize ルールは 1 から始まります。
       Priority: i + 1,
       Statement: {
         ByteMatchStatement: {
-          // CloudFormation takes the RAW search string and base64-encodes it for the
-          // WAF API itself — do NOT pre-encode here (that double-encodes and the rule
-          // never matches). This differs from the raw UpdateWebACL API, which wants
-          // base64.
+          // CloudFormation は生の検索文字列を受け取り、WAF API 用に base64 エンコードします。
+          // ここで事前エンコードしないでください（二重エンコードになりルールが一致しなくなります）。
+          // これは base64 を要求する生の UpdateWebACL API とは異なります。
           SearchString: route.path,
           FieldToMatch: { UriPath: {} },
           TextTransformations: [{ Priority: 0, Type: "NONE" }],
@@ -97,7 +96,7 @@ export function buildRules(input: MonetizeInput): Array<Record<string, unknown>>
   return rules;
 }
 
-/** WebACL-level MonetizationConfig: payee wallet, chain, base price, testnet mode. */
+/** WebACL レベルの MonetizationConfig：受取人ウォレット、チェーン、基本価格、テストネットモード。 */
 export function monetizationConfig(input: MonetizeInput): Record<string, unknown> {
   return {
     CryptoConfig: {

@@ -1,6 +1,6 @@
-// DEV-ONLY fallback config. At deploy, CDK uploads a real config.js (with the live
-// CloudFront URL, WebACL console links, and seller payTo) that OVERRIDES this in S3.
-// Vite copies public/ into dist/, so `npm run dev` and a bare build still load.
+// 開発専用フォールバック設定。デプロイ時に CDK が実際の config.js（ライブ CloudFront URL、
+// WebACL コンソールリンク、販売者 payTo を含む）を S3 にアップロードしてこれを上書きします。
+// Vite が public/ を dist/ にコピーするため、`npm run dev` と素のビルドでも読み込まれます。
 window.X402_CONFIG = {
   baseUrl: "https://example.cloudfront.net",
   proxyPath: "/proxy",

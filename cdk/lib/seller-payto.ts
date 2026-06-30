@@ -1,11 +1,11 @@
 /**
- * Resolve the seller's payTo receiver address — generated once at deploy time and
- * cached locally so it's STATIC across subsequent deploys (no template churn).
+ * 販売者の payTo 受取アドレスを解決します — デプロイ時に一度生成され、
+ * ローカルにキャッシュされるため、後続のデプロイをまたいで静的です（テンプレートの変動なし）。
  *
- * Runs in the CDK process during `cdk synth`/`deploy` (not at runtime), so there's
- * no custom resource and no Lambda. A payTo address only ever RECEIVES, so the
- * private key is irrelevant — we mint a keypair and keep only the address. The
- * cache file is gitignored; delete it to rotate to a fresh receiver.
+ * `cdk synth`/`deploy` 中に CDK プロセス内で実行されます（ランタイムではない）。
+ * そのためカスタムリソースも Lambda も不要です。payTo アドレスは受け取りのみを行うため
+ * 秘密鍵は不要です — キーペアを生成してアドレスのみを保持します。
+ * キャッシュファイルは gitignore されており、削除することで新しい受取人にローテーションできます。
  */
 import * as fs from "fs";
 import * as path from "path";
@@ -21,7 +21,7 @@ export function resolveSellerPayTo(): string {
         return cached.address;
       }
     } catch {
-      // fall through and regenerate
+      // フォールスルーして再生成
     }
   }
   const address = privateKeyToAccount(generatePrivateKey()).address;

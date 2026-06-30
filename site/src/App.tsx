@@ -9,14 +9,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const shortUA = (u: string) => u.split("/")[0].replace(/Bot$/i, "").trim() || u.slice(0, 14);
 
 /**
- * Continuous, jittered in-flight scheduler. Instead of firing fixed batches and
- * waiting for each to drain (which sawtooths the in-flight count down to zero
- * between waves), this keeps a *soft target* of requests in flight at all times:
- * every time one completes it tops back up to the target — usually launching one
- * replacement, occasionally several when the target has jittered upward. The
- * target itself re-rolls within [min,max] on each top-up so the stream drifts
- * organically rather than sitting at a constant. Resolves once all `total`
- * requests have COMPLETED. `runAt(i)` runs the i-th planned job.
+ * 連続的なジッター付きインフライトスケジューラー。固定バッチを発射して各バッチが
+ * 空になるのを待つ方式（波の間にインフライト数がゼロになるのこぎり波パターン）の代わりに、
+ * 常に一定のインフライトリクエスト数を *ソフトターゲット* として維持します。
+ * 1 つが完了するたびにターゲットまで補充されます — 通常は 1 つの代替を起動し、
+ * ターゲットがジッターで上昇した場合は複数起動することもあります。
+ * ターゲット自体が補充のたびに [min,max] の範囲で再決定されるため、
+ * ストリームは一定値に固定されずに有機的に変動します。
+ * `total` 件のリクエストがすべて完了したら解決します。`runAt(i)` は i 番目の計画ジョブを実行します。
  */
 function runPool(opts: {
   total: number;
@@ -68,13 +68,13 @@ export function App() {
   // result state
   const [status, setStatus] = useState("");
   const [legs, setLegs] = useState<Leg[]>([]);
-  // How many leg panels to show total during a round-trip (so the not-yet-arrived
-  // ones render as loaders). 0 = not running a 3-leg trip.
+  // ラウンドトリップ中に表示するレッグパネルの合計数（未到着のものはローダーとしてレンダリング）。
+  // 0 = 3 レッグのトリップを実行していない。
   const [expectedLegs, setExpectedLegs] = useState(0);
   const [content, setContent] = useState<{ contentType: string; body: string } | null>(null);
-  // Live traffic tally for count>1 Call bursts.
+  // count>1 の Call バースト用のライブトラフィック集計。
   const [tally, setTally] = useState<{ total: number; target: number; byClient: Record<string, { n: number; c402: number }> } | null>(null);
-  // Live PAY tally: per-UA funnel — planned count, then how far each got (requested → paid → settled).
+  // ライブ PAY 集計：UA ごとのファネル — 計画数、次に各ステージの進行状況（要求済み → 支払済み → 決済済み）。
   type PayStage = { planned: number; requested: number; paid: number; settled: number };
   const [payTally, setPayTally] = useState<{ target: number; byClient: Record<string, PayStage> } | null>(null);
 
@@ -100,8 +100,8 @@ export function App() {
     setPayTally(null);
   }
 
-  // CALL — N=1: single 402 leg. N>1: a parallel, jittered burst across the selected
-  // clients → a LIVE traffic tally (per-client bars) for the WAF AI-traffic view.
+  // CALL — N=1: 単一の 402 レッグ。N>1: 選択したクライアントを横断した並列ジッター付きバースト
+  // → WAF AI トラフィックビュー用のライブトラフィック集計（クライアントごとのバー）。
   async function call() {
     reset();
     setBusy(true);
@@ -116,10 +116,10 @@ export function App() {
       }
 
       const uas = selectedUAs.length ? selectedUAs : DEFAULT_USER_AGENTS;
-      // Total is EXACTLY the configured count. Jitter lives only in the batching/timing.
+      // 合計は設定したカウントと正確に一致します。ジッターはバッチ処理/タイミングにのみ存在します。
       const target = Math.max(1, count);
       const jobs = Array.from({ length: target }, (_, i) => uas[i % uas.length]);
-      // shuffle so clients interleave
+      // クライアントがインターリーブするようにシャッフル
       for (let i = jobs.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [jobs[i], jobs[j]] = [jobs[j], jobs[i]];
@@ -132,10 +132,10 @@ export function App() {
       setStatus(`Sending ${target} requests across ${uas.length} clients…`);
 
       const fireOne = async (ua: string) => {
-        // jittered start so each request spreads over time (realistic; visibly parallel)
+        // 各リクエストが時間的に分散するようにジッター付き開始（リアルに見え、並列処理が見える）
         await sleep(Math.random() * 700);
-        // Go through the UA proxy: the browser CAN'T set User-Agent, so the proxy
-        // re-issues the GET with the real UA → WAF sees a genuine bot and labels it.
+        // UA プロキシを経由：ブラウザは User-Agent を設定できないため、プロキシが
+        // 本物の UA で GET を再発行します → WAF が真のボットとして認識しラベル付けします。
         const purl = `${config.baseUrl}${config.proxyPath}?target=${encodeURIComponent(routePath)}&ua=${encodeURIComponent(ua)}&origin=${encodeURIComponent(config.baseUrl)}`;
         let c402 = 0;
         try {
@@ -153,9 +153,9 @@ export function App() {
         setStatus(`Sent ${total}/${target}…`);
       };
 
-      // Continuous jittered stream: keep ~3–14 requests in flight at all times,
-      // topping up as each completes, so traffic looks organic instead of
-      // sawtoothing between full batches and zero.
+      // 連続ジッターストリーム：常に ~3–14 のリクエストをインフライト状態に保ち、
+      // 各完了時に補充します。これにより、フルバッチとゼロの間でのこぎり波を描く代わりに
+      // トラフィックが有機的に見えます。
       await runPool({ total: jobs.length, min: 3, max: 14, runAt: (i) => fireOne(jobs[i]) });
       const tot402 = Object.values(byClient).reduce((s, e) => s + e.c402, 0);
       setStatus(`Done — ${tot402}/${target} returned 402. Open the WAF AI-traffic console to see the mix.`);
@@ -167,7 +167,7 @@ export function App() {
     }
   }
 
-  // Run ONE full 3-leg round-trip, streaming each leg as it completes.
+  // 完全な 3 レッグのラウンドトリップを 1 回実行し、各レッグが完了するたびにストリーミングします。
   async function oneRoundTrip(streamLegs: boolean) {
     if (!active) return false;
     if (streamLegs) { setLegs([]); setExpectedLegs(3); }
@@ -186,9 +186,9 @@ export function App() {
     return !!paid;
   }
 
-  // CALL & PAY — count=1: the 3-leg anatomy of one payment + rendered content.
-  // count>1: PARALLEL paid round-trips with a LIVE settlement tally (no legs/content —
-  // just the running settled count + amount, updating as each payment lands).
+  // CALL & PAY — count=1: 1 回の支払いの 3 レッグ解剖図 + レンダリングされたコンテンツ。
+  // count>1: 並列有料ラウンドトリップとライブ決済集計（レッグ/コンテンツなし —
+  // 各支払いが着地するたびに更新される実行中の決済数 + 金額のみ）。
   async function callAndPay() {
     if (!active) return;
     reset();
@@ -202,9 +202,9 @@ export function App() {
         return;
       }
 
-      // Parallel paid round-trips → a live PER-UA funnel (requested → paid → settled),
-      // STEP 1 — plan: allocate exactly `count` payments across the selected clients
-      // (round-robin), so the per-UA rows are known before any request fires.
+      // 並列有料ラウンドトリップ → UA ごとのライブファネル（要求済み → 支払済み → 決済済み）。
+      // ステップ 1 — 計画：選択したクライアントに対してラウンドロビンで正確に `count` 回の
+      // 支払いを割り当て、リクエストが発火する前に UA ごとの行が確定するようにします。
       const pk = active.privateKey;
       const uas = selectedUAs.length ? selectedUAs : DEFAULT_USER_AGENTS;
       const target = Math.max(1, count);
@@ -213,17 +213,17 @@ export function App() {
       for (const ua of uas) funnel[ua] = { planned: 0, requested: 0, paid: 0, settled: 0 };
       for (const ua of planList) funnel[ua].planned += 1;
 
-      // STEP 2 — render the plan up front (rows with their planned counts, 0 progress).
+      // ステップ 2 — 計画を前もってレンダリング（計画数を持つ行、進行状況は 0）。
       setPayTally({ target, byClient: { ...funnel } });
       setStatus(`Planned ${target} payments across ${Object.values(funnel).filter((f) => f.planned > 0).length} clients — bursting…`);
       let settled = 0;
 
-      // STEP 3 — burst, updating each row live on every leg (request → sign → settle).
+      // ステップ 3 — バースト。各レッグ（要求 → 署名 → 決済）でリアルタイムに各行を更新。
       const payOne = async (ua: string) => {
         await sleep(Math.random() * 700);
         try {
-          // ~600ms dwell between legs so each unit is visibly amber (requested) →
-          // purple (paid) → green (settled) instead of snapping straight to green.
+          // レッグ間に ~600ms の待機を設けることで、各ユニットが緑にスナップする代わりに
+          // 琥珀（要求済み）→ 紫（支払済み）→ 緑（決済済み）と視覚的に遷移します。
           await payRoundTrip(url, pk, (leg) => {
             const f = funnel[ua];
             if (leg.title.startsWith("1")) f.requested += 1;
@@ -232,15 +232,15 @@ export function App() {
             setPayTally({ target, byClient: { ...funnel } });
           }, 600);
         } catch {
-          /* leg funnel already reflects how far it got */
+          /* レッグファネルはすでにどこまで到達したかを反映しています */
         }
         setStatus(`Settled ${settled}/${target}…`);
         refreshBalance();
       };
 
-      // Continuous jittered stream: keep ~2–6 paid round-trips in flight at all
-      // times, topping up as each settles, so the funnel advances smoothly instead
-      // of waiting for whole batches to drain.
+      // 連続ジッターストリーム：常に ~2–6 の有料ラウンドトリップをインフライト状態に保ち、
+      // 各決済時に補充します。これにより、フルバッチが空になるのを待つ代わりに
+      // ファネルがスムーズに進行します。
       await runPool({ total: planList.length, min: 2, max: 6, runAt: (i) => payOne(planList[i]) });
       setStatus(`Done — ${settled}/${target} payments settled on Base Sepolia. Balance ticked down.`);
       refreshBalance();
@@ -278,7 +278,7 @@ export function App() {
         </div>
       </header>
 
-      {/* REQUEST */}
+      {/* リクエスト */}
       <section className="card">
         <div className="reqbar">
           <select className="route-select" value={routePath} onChange={(e) => { setRoutePath(e.target.value); reset(); }}>
@@ -305,7 +305,7 @@ export function App() {
         )}
       </section>
 
-      {/* 3 · RESULT: legs side by side, then the rendered content */}
+      {/* 3 · 結果：レッグを並べて表示し、次にレンダリングされたコンテンツ */}
       <section className="card">
         <div className="hint resp-status">{status || "Pick a route, then Call (402) or Call & pay (full round-trip)."}</div>
         {(legs.length > 0 || expectedLegs > 0) && (
@@ -323,8 +323,8 @@ export function App() {
                   </div>
                 );
               }
-              // pending leg → loader placeholder
-              const inFlight = i === legs.length; // the very next leg is running now
+              // 保留中のレッグ → ローダープレースホルダー
+              const inFlight = i === legs.length; // 次のレッグが今実行中
               return (
                 <div key={i} className="leg pending">
                   <div className="leg-head">
@@ -371,12 +371,11 @@ export function App() {
               <span><i className="seg set" /> settled (200)</span>
             </div>
             {Object.entries(payTally.byClient).filter(([, f]) => f.planned > 0).map(([ua, f]) => {
-              // Three layers, each anchored LEFT, width = its CUMULATIVE count over the
-              // planned total (settled ⊆ paid ⊆ requested). Stacked by z-index: amber
-              // (requested) behind, purple (paid) over it, green (settled) on top. Each
-              // band grows LEFT→RIGHT as that stage advances, and because the cumulative
-              // counts differ you see distinct green|purple|amber|empty bands. The grey
-              // track behind is the planned (pending) total — visible from frame 1.
+              // 3 つのレイヤー、それぞれ左端に固定し、幅は計画合計に対する累積数
+              //（決済済み ⊆ 支払済み ⊆ 要求済み）。z-index でスタック：琥珀（要求済み）が後ろ、
+              // 紫（支払済み）がその上、緑（決済済み）が最前面。各バンドはステージが進むにつれて
+              // 左→右に成長し、累積数が異なるため緑|紫|琥珀|空のバンドが見えます。
+              // 後ろのグレーのトラックは計画（保留中）合計 — フレーム 1 から表示されます。
               const d = Math.max(1, f.planned);
               const pct = (n: number) => `${(Math.max(0, n) / d) * 100}%`;
               return (

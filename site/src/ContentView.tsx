@@ -1,10 +1,11 @@
 /**
- * Renders the paid 200 body by its content type: JSON (pretty), Markdown (tiny
- * built-in renderer — tables, headings, lists, bold), or HTML (the edge fragment).
+ * 有料の 200 ボディをコンテンツタイプに応じてレンダリングします：JSON（整形済み）、
+ * Markdown（テーブル、見出し、リスト、太字を含む小さな組み込みレンダラー）、
+ * または HTML（エッジフラグメント）。
  *
- * The body comes from our own trusted edge function, but every HTML fragment is
- * still run through DOMPurify before it reaches the DOM (see SafeHtml). Never inject
- * unsanitized HTML — copy this sanitize-then-render pattern, not a raw assignment.
+ * ボディは自社の信頼できるエッジ関数から来ますが、すべての HTML フラグメントは
+ * DOM に到達する前に DOMPurify を通します（SafeHtml を参照）。サニタイズせずに
+ * HTML を注入しないでください — 生の代入ではなく、このサニタイズ→レンダリングパターンをコピーしてください。
  */
 import { useEffect, useRef } from "react";
 import DOMPurify from "dompurify";
@@ -12,9 +13,9 @@ import DOMPurify from "dompurify";
 type Props = { contentType: string; body: string };
 
 /**
- * Renders a sanitized HTML fragment. DOMPurify parses and strips scripts/handlers,
- * returning a clean DocumentFragment that we attach via replaceChildren — so no raw
- * HTML string is ever assigned to a DOM markup property.
+ * サニタイズされた HTML フラグメントをレンダリングします。DOMPurify がスクリプト/ハンドラーを
+ * 解析・除去し、replaceChildren 経由で接続するクリーンな DocumentFragment を返します —
+ * したがって、生の HTML 文字列が DOM のマークアッププロパティに代入されることはありません。
  */
 function SafeHtml({ html }: { html: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -33,7 +34,7 @@ function mdToHtml(md: string): string {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-    // table
+    // テーブル
     if (/^\|/.test(line) && /^\|[\s:|-]+\|?$/.test(lines[i + 1] || "")) {
       const cells = (l: string) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
       const head = cells(line);
@@ -74,7 +75,7 @@ export function ContentView({ contentType, body }: Props) {
     try {
       pretty = JSON.stringify(JSON.parse(body), null, 2);
     } catch {
-      /* leave as-is */
+      /* そのまま表示 */
     }
     return <pre className="resp">{pretty}</pre>;
   }

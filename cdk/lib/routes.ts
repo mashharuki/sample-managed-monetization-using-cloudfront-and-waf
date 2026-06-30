@@ -1,24 +1,25 @@
 /**
- * The monetized routes. Each one becomes:
- *   - a CloudFront behavior (path pattern) wired to the weather CloudFront Function,
- *   - a WAF `Monetize` rule (so WAF returns 402 for it), and
- *   - an entry in the SPA's config.js so the buyer can pick it.
+ * 収益化するルート。各ルートは以下を生成します：
+ *   - CloudFront Function に紐付いた CloudFront ビヘイビア（パターン）、
+ *   - WAF の `Monetize` ルール（WAF がそのルートに対して 402 を返すようにする）、および
+ *   - 購入者が選択できる SPA の config.js のエントリ。
  *
- * Adding a route is a single entry here. `contentType` is just a hint the buyer's
- * renderer uses to pick JSON / Markdown / HTML formatting; the CloudFront Function
- * is what actually emits the body.
+ * ルートの追加はここに 1 エントリを追加するだけです。`contentType` は購入者のレンダラーが
+ * JSON / Markdown / HTML フォーマットを選ぶためのヒントに過ぎません。実際にボディを
+ * 出力するのは CloudFront Function です。
  */
 export interface RouteSpec {
-  /** Path the behavior matches and the buyer calls, e.g. "/weather". */
+  /** ビヘイビアがマッチし購入者が呼び出すパス（例: "/weather"）。 */
   path: string;
-  /** Short label for the buyer's route picker. */
+  /** 購入者のルートピッカー用の短いラベル。 */
   label: string;
-  /** Renderer hint: how the buyer formats the 200 body. */
+  /** レンダラーヒント：購入者が 200 ボディをどのようにフォーマットするか。 */
   contentType: "json" | "markdown" | "html";
-  /** Price multiplier × the WebACL base Amount. */
+  /** 価格乗数 × WebACL の基本 Amount。 */
   priceMultiplier: number;
 }
 
+// ここで対象のパスを指定する
 export const ROUTES: RouteSpec[] = [
   { path: "/weather", label: "Weather (JSON)", contentType: "json", priceMultiplier: 1 },
   { path: "/sports", label: "Sports (Markdown)", contentType: "markdown", priceMultiplier: 2 },
