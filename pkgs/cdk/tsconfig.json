@@ -13,6 +13,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["bin/**/*.ts", "lib/**/*.ts", "utils/routes.ts", "utils/seller-payto.ts"],
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "utils/**/*.ts"],
   "exclude": ["node_modules", "cdk.out"]
 }
