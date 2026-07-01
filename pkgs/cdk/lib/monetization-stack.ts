@@ -28,29 +28,21 @@ import { CfnWebACL } from "aws-cdk-lib/aws-wafv2";
 import type { Construct } from "constructs";
 import { execSync } from "node:child_process";
 import * as path from "node:path";
-import { BASE_SEPOLIA_USDC } from "../utils/constants";
+import {
+  CACHE_DEFAULT_TTL_SEC,
+  CACHE_MAX_TTL_SEC,
+  CIRCLE_FAUCET_URL,
+  PROXY_TIMEOUT_SEC,
+  SITE_BUNDLE_DOCKER_IMAGE,
+  VIEWER_COUNTRY_HEADER,
+} from "../utils/constants";
+import { buildBundleCommand, buildConfigJs, metricToken } from "../utils/helpers";
+import { ERROR_MESSAGES, OUTPUT_DESCRIPTIONS, RESOURCE_COMMENTS } from "../utils/messages";
 import { ROUTES } from "../utils/routes";
 import { resolveSellerPayTo } from "../utils/seller-payto";
 import { buildRules, monetizationConfig } from "./monetize/monetization";
 
-/** パス → WAF メトリクス/ルール名に使える安全なトークンに変換（"/main.html" → "main-html"）。 */
-const metricToken = (p: string) => p.replace(/^\//, "").replace(/[^a-z0-9]+/gi, "-");
-
-// Circle のテストネットフォーセット（Base Sepolia USDC）。ページから資金補充のためにディープリンクします。
-const CIRCLE_FAUCET_URL = "https://faucet.circle.com/";
-// バンドルスクリプト内のプレースホルダートークン。実際の出力ディレクトリに置換されます。
-const OUTDIR = "__OUTDIR__";
-
-/**
- * MonetizationStack用のCDKスタックファイル
- */
 export class MonetizationStack extends Stack {
-  /**
-   * コンストラクター
-   * @param scope
-   * @param id
-   * @param props
-   */
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
@@ -74,18 +66,19 @@ export class MonetizationStack extends Stack {
     //    支払い済みリクエストだけがここに到達します。
     const edgeFn = new CfFunction(this, "EdgeFunction", {
       runtime: FunctionRuntime.JS_2_0,
-      code: FunctionCode.fromFile({ filePath: path.join(__dirname, "cff", "edge.js") }),
-      comment: "x402 サンプル — モック有料コンテンツ（WAF 支払い検証後に実行）",
+      // cff/ は lib/ の親（pkgs/cdk/cff/）に移動済みのため ".." を挟む。
+      code: FunctionCode.fromFile({ filePath: path.join(__dirname, "..", "cff", "edge.js") }),
+      comment: RESOURCE_COMMENTS.EDGE_FUNCTION,
     });
 
     // 4. 有料ルート用のキャッシュポリシー。CloudFront-Viewer-Country をエッジ関数に転送します
     //    （ここで許可リストに入れない限り、このヘッダーは存在しません）。
     const edgeCachePolicy = new CachePolicy(this, "EdgeCachePolicy", {
-      comment: "ビューワーの国情報をエッジ CloudFront Function に転送。キャッシュなし。",
-      defaultTtl: Duration.seconds(0),
-      minTtl: Duration.seconds(0),
-      maxTtl: Duration.seconds(1),
-      headerBehavior: CacheHeaderBehavior.allowList("CloudFront-Viewer-Country"),
+      comment: RESOURCE_COMMENTS.EDGE_CACHE_POLICY,
+      defaultTtl: Duration.seconds(CACHE_DEFAULT_TTL_SEC),
+      minTtl: Duration.seconds(CACHE_DEFAULT_TTL_SEC),
+      maxTtl: Duration.seconds(CACHE_MAX_TTL_SEC),
+      headerBehavior: CacheHeaderBehavior.allowList(VIEWER_COUNTRY_HEADER),
     });
 
     // 5. WAF WebACL — このテンプレートだけでネイティブ x402 収益化を完結させます。
@@ -108,7 +101,6 @@ export class MonetizationStack extends Stack {
     });
     const metricPrefix = id.toLowerCase();
 
-    // ここでMoneize ルールを導入
     const monetizeRoutes = ROUTES.map((r) => ({
       path: r.path,
       priceMultiplier: r.priceMultiplier,
@@ -127,15 +119,14 @@ export class MonetizationStack extends Stack {
     //    各有料ルートも S3 オリジンを使いますが、viewer-request エッジ関数がコンテンツで短絡します。
     const s3Origin = S3BucketOrigin.withOriginAccessControl(siteBucket);
     const distribution = new Distribution(this, "Distribution", {
-      comment: "x402 WAF 収益化サンプル",
+      comment: RESOURCE_COMMENTS.DISTRIBUTION,
       defaultRootObject: "index.html",
       webAclId: webAcl.attrArn,
       defaultBehavior: {
         origin: s3Origin,
         viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         // SPA のキャッシュを無効にして、すべてのデプロイが即時反映されるようにします。
-        // キャッシュ無効化の遅延も、キャッシュバスティングのクエリパラメータも不要です。
-        //（デモ用のため、ページは小さいです。）Vite のコンテンツハッシュ付きアセットファイル名がバージョン管理を担います。
+        // Vite のコンテンツハッシュ付きアセットファイル名がバージョン管理を担います。
         cachePolicy: CachePolicy.CACHING_DISABLED,
       },
     });
@@ -161,7 +152,7 @@ export class MonetizationStack extends Stack {
       entry: path.join(__dirname, "proxy", "handler.ts"),
       handler: "handler",
       runtime: LambdaRuntime.NODEJS_24_X,
-      timeout: Duration.seconds(15),
+      timeout: Duration.seconds(PROXY_TIMEOUT_SEC),
       // SELF_ORIGIN 環境変数なし（Distribution との循環依存が生じるため）。
       // ハンドラーは代わりに受信した Host ヘッダーからオリジンを導出します。
       environment: {
@@ -191,32 +182,17 @@ export class MonetizationStack extends Stack {
     // 7. サイトのデプロイ。CDK が Vite ビルドを実行し（React + TS → 静的アセット）、
     //    デプロイ時のトークン（ベース URL、ルート、WebACL コンソールリンク、販売者 payTo；
     //    購入者キーは含まない — ブラウザで生成されます）から config.js を生成します。
-    //    ビルドにデプロイ時の値は不要（config.js 経由でランタイムに到達）なので、
-    //    `cdk deploy` 一発で完全設定済みのサイトが完成します。バンドルはローカル（ホストの
-    //    Node）で実行され、Docker フォールバックがあるため Docker は必須ではありません。
     const siteDir = path.join(__dirname, "..", "..", "site");
-    const bundleScript = [
-      "npm ci --no-audit --no-fund || npm install --no-audit --no-fund",
-      "npm run build",
-      `cp -r dist/. ${OUTDIR}/`,
-    ];
     // ホストの Node ツールチェーンのみを使ってサイトをビルド — Docker は使いません。
-    // Node/npx が利用できない場合は、コンテナビルドに静かにフォールバックするのではなく
-    // 明示的にエラーを出します。これによりローカルツールチェーンに対して再現性が確保されます。
+    // Node/npx が利用できない場合は明示的にエラーを出します。
     const localBundling: ILocalBundling = {
       tryBundle(outputDir: string): boolean {
         try {
           execSync("node --version && npx --version", { stdio: "ignore" });
         } catch {
-          throw new Error(
-            "サイトのビルドにはローカルの Node.js ツールチェーン（node + npx）が必要です。" +
-              "Node.js 24 以上をインストールして `cdk deploy` を再実行してください。",
-          );
+          throw new Error(ERROR_MESSAGES.NO_NODE);
         }
-        execSync(bundleScript.join(" && ").replace(new RegExp(OUTDIR, "g"), outputDir), {
-          cwd: siteDir,
-          stdio: "inherit",
-        });
+        execSync(buildBundleCommand(outputDir), { cwd: siteDir, stdio: "inherit" });
         return true;
       },
     };
@@ -231,60 +207,46 @@ export class MonetizationStack extends Stack {
             // CDK の BundlingOptions 型はまだ `image` を必須とするため、このプレースホルダーは
             // 到達不能で、意図的に `command`（Docker 専用）を持ちません。
             local: localBundling,
-            image: DockerImage.fromRegistry("public.ecr.aws/sam/build-nodejs24.x:1.149.0"),
+            image: DockerImage.fromRegistry(SITE_BUNDLE_DOCKER_IMAGE),
           },
         }),
         Source.data(
           "config.js",
-          [
-            "window.X402_CONFIG = {",
-            `  baseUrl: ${JSON.stringify(baseUrl)},`,
-            `  routes: ${JSON.stringify(
-              ROUTES.map((r) => ({ path: r.path, label: r.label, contentType: r.contentType })),
-            )},`,
-            `  proxyPath: "/proxy",`,
-            `  payTo: "${sellerPayTo}",`,
-            `  usdcAddress: ${JSON.stringify(BASE_SEPOLIA_USDC)},`,
-            `  chainId: 84532,`,
-            `  faucetUrl: ${JSON.stringify(CIRCLE_FAUCET_URL)},`,
-            // この WebACL の AWS WAF "pro" コンソールへのディープリンク。CLOUDFRONT
-            // スコープ = グローバル。パスのリージョンは WebACL が存在するリージョン（us-east-1）。
-            // AI 収益/収益化ビュー用と、ライブ AI トラフィック用の 2 つ。
-            `  wafMonetizationUrl: "https://us-east-1.console.aws.amazon.com/wafv2-pro/ai-revenue-payments/${webAcl.name}/${webAcl.attrId}?region=us-east-1&scope=global",`,
-            `  wafTrafficUrl: "https://us-east-1.console.aws.amazon.com/wafv2-pro/protections/${webAcl.name}/${webAcl.attrId}/ai-traffic?region=us-east-1&scope=global"`,
-            "};",
-          ].join("\n"),
+          buildConfigJs({
+            baseUrl,
+            routes: ROUTES,
+            sellerPayTo,
+            webAclName: webAcl.name ?? "",
+            webAclId: webAcl.attrId,
+          }),
         ),
       ],
     });
 
-    // ==================================================================
     // 8. 出力値。
-    // ==================================================================
-
     new CfnOutput(this, "DistributionUrl", {
       value: baseUrl,
-      description: "これを開いてください — 購入者ページ（無料ランディング + x402 デモ）。",
+      description: OUTPUT_DESCRIPTIONS.DISTRIBUTION_URL,
     });
     new CfnOutput(this, "PaidEndpoints", {
       value: ROUTES.map((r) => `${baseUrl}${r.path}`).join(" , "),
-      description: "有料エンドポイント。`curl -i` で WAF の生の 402 レスポンスを確認できます。",
+      description: OUTPUT_DESCRIPTIONS.PAID_ENDPOINTS,
     });
     new CfnOutput(this, "SellerPayTo", {
       value: sellerPayTo,
-      description: "WAF が支払いを決済するアドレス（Base Sepolia テストネット）。",
+      description: OUTPUT_DESCRIPTIONS.SELLER_PAY_TO,
     });
     new CfnOutput(this, "FaucetUrl", {
       value: CIRCLE_FAUCET_URL,
-      description: "ここでブラウザ内の購入者ウォレットにテストネット USDC を補充します。",
+      description: OUTPUT_DESCRIPTIONS.FAUCET_URL,
     });
     new CfnOutput(this, "WafMonetizationConsoleUrl", {
       value: `https://us-east-1.console.aws.amazon.com/wafv2-pro/ai-revenue-payments/${webAcl.name}/${webAcl.attrId}?region=us-east-1&scope=global`,
-      description: "AWS WAF コンソール — この WebACL の AI 収益/収益化ビュー。",
+      description: OUTPUT_DESCRIPTIONS.WAF_MONETIZATION_CONSOLE,
     });
     new CfnOutput(this, "WafTrafficConsoleUrl", {
       value: `https://us-east-1.console.aws.amazon.com/wafv2-pro/protections/${webAcl.name}/${webAcl.attrId}/ai-traffic?region=us-east-1&scope=global`,
-      description: "AWS WAF コンソール — この WebACL のライブ AI トラフィック。",
+      description: OUTPUT_DESCRIPTIONS.WAF_TRAFFIC_CONSOLE,
     });
   }
 }
