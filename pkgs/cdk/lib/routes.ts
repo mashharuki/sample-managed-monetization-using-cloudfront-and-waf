@@ -21,7 +21,22 @@ export interface RouteSpec {
 
 // ここで対象のパスを指定する
 export const ROUTES: RouteSpec[] = [
-  { path: "/weather", label: "Weather (JSON)", contentType: "json", priceMultiplier: 1 },
-  { path: "/sports", label: "Sports (Markdown)", contentType: "markdown", priceMultiplier: 2 },
-  { path: "/main.html", label: "Landing (HTML)", contentType: "html", priceMultiplier: 1 },
+  { 
+    path: "/weather", 
+    label: "Weather (JSON)", 
+    contentType: "json", 
+    priceMultiplier: 1 
+  },
+  { 
+    path: "/sports", 
+    label: "Sports (Markdown)", 
+    contentType: "markdown", 
+    priceMultiplier: 2 
+  },
+  { 
+    path: "/main.html", 
+    label: "Landing (HTML)", 
+    contentType: "html", 
+    priceMultiplier: 1 
+  },
 ];

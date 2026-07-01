@@ -11,8 +11,13 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
+// jsonファイルのパス
 const CACHE_FILE = path.join(__dirname, "..", ".seller-payto.json");
 
+/**
+ * アドレスをjsonファイルに書き込む
+ * @returns 
+ */
 export function resolveSellerPayTo(): string {
   if (fs.existsSync(CACHE_FILE)) {
     try {
@@ -24,6 +29,7 @@ export function resolveSellerPayTo(): string {
       // フォールスルーして再生成
     }
   }
+  // 秘密鍵からウォレットアドレスを算出し、jsonに書き込む
   const address = privateKeyToAccount(generatePrivateKey()).address;
   fs.writeFileSync(CACHE_FILE, JSON.stringify({ address }, null, 2));
   return address;
