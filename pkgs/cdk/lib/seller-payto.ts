@@ -7,8 +7,8 @@
  * 秘密鍵は不要です — キーペアを生成してアドレスのみを保持します。
  * キャッシュファイルは gitignore されており、削除することで新しい受取人にローテーションできます。
  */
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 const CACHE_FILE = path.join(__dirname, "..", ".seller-payto.json");

@@ -1,0 +1,19 @@
+{
+  "name": "x402-waf-weather-sample",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "synth": "pnpm --filter ./pkgs/cdk synth",
+    "deploy": "pnpm --filter ./pkgs/cdk deploy",
+    "destroy": "pnpm --filter ./pkgs/cdk destroy",
+    "dev": "pnpm --filter ./pkgs/site dev",
+    "build": "pnpm --filter ./pkgs/site build",
+    "preview": "pnpm --filter ./pkgs/site preview",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.2"
+  }
+}

@@ -19,8 +19,7 @@ export type AppConfig = {
 };
 
 // CDK によりデプロイ時に /config.js として注入されます（バンドルより先に読み込まれます）。
-export const config: AppConfig = (window as unknown as { X402_CONFIG: AppConfig })
-  .X402_CONFIG;
+export const config: AppConfig = (window as unknown as { X402_CONFIG: AppConfig }).X402_CONFIG;
 
 // デフォルトのシミュレートクライアント — AI クローラー/エージェント、ブラウザ、curl の組み合わせで、
 // デモが WAF コンソールで多様性を示せます。ユーザーが独自のものを追加できます（localStorage）。

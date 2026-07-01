@@ -33,9 +33,11 @@ export function WalletPicker({ wallets, active, balances, onUse, onRegenerate, o
 
   return (
     <div className="wp" ref={ref}>
-      <button className="wp-trigger" onClick={() => setOpen((o) => !o)}>
+      <button type="button" className="wp-trigger" onClick={() => setOpen((o) => !o)}>
         <span className="wp-addr">{active ? short(active.address) : "—"}</span>
-        <span className="wp-bal">{active ? bal(active.id) : "0.000"} <span className="unit">USDC</span></span>
+        <span className="wp-bal">
+          {active ? bal(active.id) : "0.000"} <span className="unit">USDC</span>
+        </span>
         <span className="wp-caret">▾</span>
       </button>
 
@@ -44,22 +46,56 @@ export function WalletPicker({ wallets, active, balances, onUse, onRegenerate, o
           {wallets.map((w) => (
             <div key={w.id} className={`wp-row ${active && w.id === active.id ? "active" : ""}`}>
               <button
+                type="button"
                 className="wp-pick"
                 title={w.address}
-                onClick={() => { onUse(w.id); setOpen(false); }}
+                onClick={() => {
+                  onUse(w.id);
+                  setOpen(false);
+                }}
               >
                 <span className="wp-dot">{active && w.id === active.id ? "●" : "○"}</span>
                 <span className="wp-row-addr">{short(w.address)}</span>
                 <span className="wp-row-bal">{bal(w.id)} USDC</span>
               </button>
               <div className="wp-actions">
-                <button className="ic" title="Copy address" onClick={() => navigator.clipboard.writeText(w.address)}>⧉</button>
-                <a className="ic" title="Fund at faucet" href={config.faucetUrl} target="_blank" rel="noreferrer">＋</a>
-                <button className="ic danger" title="Delete wallet" onClick={() => onRemove(w.id)}>🗑</button>
+                <button
+                  type="button"
+                  className="ic"
+                  title="Copy address"
+                  onClick={() => navigator.clipboard.writeText(w.address)}
+                >
+                  ⧉
+                </button>
+                <a
+                  className="ic"
+                  title="Fund at faucet"
+                  href={config.faucetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ＋
+                </a>
+                <button
+                  type="button"
+                  className="ic danger"
+                  title="Delete wallet"
+                  onClick={() => onRemove(w.id)}
+                >
+                  🗑
+                </button>
               </div>
             </div>
           ))}
-          <button className="wp-new" onClick={() => { onRegenerate(); }}>＋ New wallet</button>
+          <button
+            type="button"
+            className="wp-new"
+            onClick={() => {
+              onRegenerate();
+            }}
+          >
+            ＋ New wallet
+          </button>
         </div>
       )}
     </div>

@@ -11,7 +11,10 @@
  *
  * CloudFront 経由でのみアクセス可能（Function URL は IAM 認証 + OAC）。パブリックではありません。
  */
-const ALLOWED_TARGETS = (process.env.ALLOWED_TARGETS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+const ALLOWED_TARGETS = (process.env.ALLOWED_TARGETS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const handler = async (event: any) => {
@@ -23,7 +26,11 @@ export const handler = async (event: any) => {
 
   // 設定済みの収益化パスのみ許可（オープンプロキシにしない）。
   if (!ALLOWED_TARGETS.includes(target)) {
-    return { statusCode: 400, headers: cors, body: JSON.stringify({ error: `target not allowed: ${target}` }) };
+    return {
+      statusCode: 400,
+      headers: cors,
+      body: JSON.stringify({ error: `target not allowed: ${target}` }),
+    };
   }
 
   // ブラウザは自身のページオリジン（CloudFront ドメイン）を `origin` として渡します。
@@ -32,7 +39,11 @@ export const handler = async (event: any) => {
   // するため WAF が実行されます。安全のため *.cloudfront.net のみに制限します。
   const origin = String(qs.origin ?? "");
   if (!/^https:\/\/[a-z0-9.-]+\.cloudfront\.net$/i.test(origin)) {
-    return { statusCode: 400, headers: cors, body: JSON.stringify({ error: `不正なオリジン: ${origin}` }) };
+    return {
+      statusCode: 400,
+      headers: cors,
+      body: JSON.stringify({ error: `不正なオリジン: ${origin}` }),
+    };
   }
   // 各呼び出しがキャッシュされた繰り返しではなく、個別のエッジリクエストになるようにキャッシュバスト。
   const url = `${origin}${target}?_=${Math.random().toString(36).slice(2)}`;
@@ -44,6 +55,10 @@ export const handler = async (event: any) => {
       body: JSON.stringify({ target, ua, upstreamStatus: r.status }),
     };
   } catch (e) {
-    return { statusCode: 502, headers: cors, body: JSON.stringify({ target, ua, error: String(e) }) };
+    return {
+      statusCode: 502,
+      headers: cors,
+      body: JSON.stringify({ target, ua, error: String(e) }),
+    };
   }
 };

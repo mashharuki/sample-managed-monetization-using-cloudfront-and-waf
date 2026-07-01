@@ -7,8 +7,9 @@
  * DOM に到達する前に DOMPurify を通します（SafeHtml を参照）。サニタイズせずに
  * HTML を注入しないでください — 生の代入ではなく、このサニタイズ→レンダリングパターンをコピーしてください。
  */
-import { useEffect, useRef } from "react";
+
 import DOMPurify from "dompurify";
+import { useEffect, useRef } from "react";
 
 type Props = { contentType: string; body: string };
 
@@ -36,7 +37,11 @@ function mdToHtml(md: string): string {
     const line = lines[i];
     // テーブル
     if (/^\|/.test(line) && /^\|[\s:|-]+\|?$/.test(lines[i + 1] || "")) {
-      const cells = (l: string) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const cells = (l: string) =>
+        l
+          .replace(/^\||\|$/g, "")
+          .split("|")
+          .map((c) => c.trim());
       const head = cells(line);
       i += 2;
       const rows: string[][] = [];
@@ -49,13 +54,14 @@ function mdToHtml(md: string): string {
       continue;
     }
     if (/^#{1,6}\s/.test(line)) {
-      const lvl = line.match(/^#+/)![0].length;
+      const lvl = line.match(/^#+/)?.[0].length;
       out.push(`<h${lvl}>${esc(line.replace(/^#+\s/, ""))}</h${lvl}>`);
     } else if (/^>\s?/.test(line)) {
       out.push(`<blockquote>${esc(line.replace(/^>\s?/, ""))}</blockquote>`);
     } else if (/^[-*]\s/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^[-*]\s/.test(lines[i])) items.push(`<li>${esc(lines[i++].replace(/^[-*]\s/, ""))}</li>`);
+      while (i < lines.length && /^[-*]\s/.test(lines[i]))
+        items.push(`<li>${esc(lines[i++].replace(/^[-*]\s/, ""))}</li>`);
       out.push(`<ul>${items.join("")}</ul>`);
       continue;
     } else if (line.trim() === "") {
@@ -65,7 +71,10 @@ function mdToHtml(md: string): string {
     }
     i++;
   }
-  return out.join("\n").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/_(.+?)_/g, "<em>$1</em>");
+  return out
+    .join("\n")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/_(.+?)_/g, "<em>$1</em>");
 }
 
 export function ContentView({ contentType, body }: Props) {

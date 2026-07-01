@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ContentView } from "./ContentView";
 import { config, DEFAULT_USER_AGENTS } from "./utils/config";
 import { useWallets } from "./utils/wallet";
-import { callOnly, payRoundTrip, type Leg } from "./utils/x402";
+import { callOnly, type Leg, payRoundTrip } from "./utils/x402";
 import { WalletPicker } from "./WalletPicker";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -73,10 +73,17 @@ export function App() {
   const [expectedLegs, setExpectedLegs] = useState(0);
   const [content, setContent] = useState<{ contentType: string; body: string } | null>(null);
   // count>1 の Call バースト用のライブトラフィック集計。
-  const [tally, setTally] = useState<{ total: number; target: number; byClient: Record<string, { n: number; c402: number }> } | null>(null);
+  const [tally, setTally] = useState<{
+    total: number;
+    target: number;
+    byClient: Record<string, { n: number; c402: number }>;
+  } | null>(null);
   // ライブ PAY 集計：UA ごとのファネル — 計画数、次に各ステージの進行状況（要求済み → 支払済み → 決済済み）。
   type PayStage = { planned: number; requested: number; paid: number; settled: number };
-  const [payTally, setPayTally] = useState<{ target: number; byClient: Record<string, PayStage> } | null>(null);
+  const [payTally, setPayTally] = useState<{
+    target: number;
+    byClient: Record<string, PayStage>;
+  } | null>(null);
 
   const LEG_TITLES = ["1 · Request", "2 · Sign", "3 · Request + pay"];
 
@@ -158,7 +165,9 @@ export function App() {
       // トラフィックが有機的に見えます。
       await runPool({ total: jobs.length, min: 3, max: 14, runAt: (i) => fireOne(jobs[i]) });
       const tot402 = Object.values(byClient).reduce((s, e) => s + e.c402, 0);
-      setStatus(`Done — ${tot402}/${target} returned 402. Open the WAF AI-traffic console to see the mix.`);
+      setStatus(
+        `Done — ${tot402}/${target} returned 402. Open the WAF AI-traffic console to see the mix.`,
+      );
       refreshBalance(); // after the batch (unpaid 402s don't move funds, but keeps it fresh)
     } catch (e) {
       setStatus(String(e));
@@ -170,7 +179,10 @@ export function App() {
   // 完全な 3 レッグのラウンドトリップを 1 回実行し、各レッグが完了するたびにストリーミングします。
   async function oneRoundTrip(streamLegs: boolean) {
     if (!active) return false;
-    if (streamLegs) { setLegs([]); setExpectedLegs(3); }
+    if (streamLegs) {
+      setLegs([]);
+      setExpectedLegs(3);
+    }
     const progress = ["Requesting", "Signing", "Paying + settling"];
     const rt = await payRoundTrip(url, active.privateKey, (leg) => {
       if (!streamLegs) return;
@@ -197,7 +209,11 @@ export function App() {
       if (count <= 1) {
         setStatus("1 · Requesting…");
         const ok = await oneRoundTrip(true);
-        setStatus(ok ? "200 — paid, settled, and served. Balance will tick down." : "Payment didn't complete — is the wallet funded with Base Sepolia USDC?");
+        setStatus(
+          ok
+            ? "200 — paid, settled, and served. Balance will tick down."
+            : "Payment didn't complete — is the wallet funded with Base Sepolia USDC?",
+        );
         refreshBalance();
         return;
       }
@@ -215,7 +231,9 @@ export function App() {
 
       // ステップ 2 — 計画を前もってレンダリング（計画数を持つ行、進行状況は 0）。
       setPayTally({ target, byClient: { ...funnel } });
-      setStatus(`Planned ${target} payments across ${Object.values(funnel).filter((f) => f.planned > 0).length} clients — bursting…`);
+      setStatus(
+        `Planned ${target} payments across ${Object.values(funnel).filter((f) => f.planned > 0).length} clients — bursting…`,
+      );
       let settled = 0;
 
       // ステップ 3 — バースト。各レッグ（要求 → 署名 → 決済）でリアルタイムに各行を更新。
@@ -224,13 +242,21 @@ export function App() {
         try {
           // レッグ間に ~600ms の待機を設けることで、各ユニットが緑にスナップする代わりに
           // 琥珀（要求済み）→ 紫（支払済み）→ 緑（決済済み）と視覚的に遷移します。
-          await payRoundTrip(url, pk, (leg) => {
-            const f = funnel[ua];
-            if (leg.title.startsWith("1")) f.requested += 1;
-            else if (leg.title.startsWith("2")) f.paid += 1;
-            else if (leg.title.startsWith("3") && leg.ok) { f.settled += 1; settled += 1; }
-            setPayTally({ target, byClient: { ...funnel } });
-          }, 600);
+          await payRoundTrip(
+            url,
+            pk,
+            (leg) => {
+              const f = funnel[ua];
+              if (leg.title.startsWith("1")) f.requested += 1;
+              else if (leg.title.startsWith("2")) f.paid += 1;
+              else if (leg.title.startsWith("3") && leg.ok) {
+                f.settled += 1;
+                settled += 1;
+              }
+              setPayTally({ target, byClient: { ...funnel } });
+            },
+            600,
+          );
         } catch {
           /* レッグファネルはすでにどこまで到達したかを反映しています */
         }
@@ -242,7 +268,9 @@ export function App() {
       // 各決済時に補充します。これにより、フルバッチが空になるのを待つ代わりに
       // ファネルがスムーズに進行します。
       await runPool({ total: planList.length, min: 2, max: 6, runAt: (i) => payOne(planList[i]) });
-      setStatus(`Done — ${settled}/${target} payments settled on Base Sepolia. Balance ticked down.`);
+      setStatus(
+        `Done — ${settled}/${target} payments settled on Base Sepolia. Balance ticked down.`,
+      );
       refreshBalance();
     } catch (e) {
       setStatus(`Payment failed — ${String(e)}`);
@@ -269,55 +297,118 @@ export function App() {
           <h1>Pay-per-request content, priced by AWS WAF</h1>
           <p>
             Native WAF monetization over the{" "}
-            <a href="https://www.x402.org/" target="_blank" rel="noreferrer">x402 protocol</a>: call a route →
-            <b> 402</b> → pay from a browser wallet → WAF settles on Base Sepolia and serves JSON/Markdown/HTML.
+            <a href="https://www.x402.org/" target="_blank" rel="noreferrer">
+              x402 protocol
+            </a>
+            : call a route →<b> 402</b> → pay from a browser wallet → WAF settles on Base Sepolia
+            and serves JSON/Markdown/HTML.
           </p>
         </div>
         <div className="topbar-wallet">
-          <WalletPicker wallets={wallets} active={active} balances={balances} onUse={use} onRegenerate={regenerate} onRemove={remove} />
+          <WalletPicker
+            wallets={wallets}
+            active={active}
+            balances={balances}
+            onUse={use}
+            onRegenerate={regenerate}
+            onRemove={remove}
+          />
         </div>
       </header>
 
       {/* リクエスト */}
       <section className="card">
         <div className="reqbar">
-          <select className="route-select" value={routePath} onChange={(e) => { setRoutePath(e.target.value); reset(); }}>
-            {config.routes.map((r) => <option key={r.path} value={r.path}>{r.path} · {r.label}</option>)}
+          <select
+            className="route-select"
+            value={routePath}
+            onChange={(e) => {
+              setRoutePath(e.target.value);
+              reset();
+            }}
+          >
+            {config.routes.map((r) => (
+              <option key={r.path} value={r.path}>
+                {r.path} · {r.label}
+              </option>
+            ))}
           </select>
-          <span className="perua">×<input type="number" min={1} max={200} value={count} onChange={(e) => setCount(parseInt(e.target.value || "1", 10))} /></span>
-          <button onClick={call} disabled={busy}>Call</button>
-          <button className="secondary" onClick={callAndPay} disabled={busy || !active}>Call &amp; pay</button>
+          <span className="perua">
+            ×
+            <input
+              type="number"
+              min={1}
+              max={200}
+              value={count}
+              onChange={(e) => setCount(parseInt(e.target.value || "1", 10))}
+            />
+          </span>
+          <button type="button" onClick={call} disabled={busy}>
+            Call
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={callAndPay}
+            disabled={busy || !active}
+          >
+            Call &amp; pay
+          </button>
           <span className="grow" />
-          <a href={config.wafTrafficUrl} target="_blank" rel="noreferrer" className="link">WAF traffic ↗</a>
-          <a href={config.wafMonetizationUrl} target="_blank" rel="noreferrer" className="link">revenue ↗</a>
+          <a href={config.wafTrafficUrl} target="_blank" rel="noreferrer" className="link">
+            WAF traffic ↗
+          </a>
+          <a href={config.wafMonetizationUrl} target="_blank" rel="noreferrer" className="link">
+            revenue ↗
+          </a>
         </div>
         {count > 1 && (
           <div className="ualist">
             <span className="ualabel">clients:</span>
             {allUAs.map((u) => (
               <label key={u} className="ua" title={u}>
-                <input type="checkbox" checked={selectedUAs.includes(u)} onChange={() => toggleUA(u)} />
-                <span>{u.length > 40 ? u.slice(0, 37) + "…" : u}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedUAs.includes(u)}
+                  onChange={() => toggleUA(u)}
+                />
+                <span>{u.length > 40 ? `${u.slice(0, 37)}…` : u}</span>
               </label>
             ))}
-            <span className="addua"><input placeholder="add UA…" value={newUa} onChange={(e) => setNewUa(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addUa()} /></span>
+            <span className="addua">
+              <input
+                placeholder="add UA…"
+                value={newUa}
+                onChange={(e) => setNewUa(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addUa()}
+              />
+            </span>
           </div>
         )}
       </section>
 
       {/* 3 · 結果：レッグを並べて表示し、次にレンダリングされたコンテンツ */}
       <section className="card">
-        <div className="hint resp-status">{status || "Pick a route, then Call (402) or Call & pay (full round-trip)."}</div>
+        <div className="hint resp-status">
+          {status || "Pick a route, then Call (402) or Call & pay (full round-trip)."}
+        </div>
         {(legs.length > 0 || expectedLegs > 0) && (
           <div className="legs">
             {Array.from({ length: Math.max(legs.length, expectedLegs) }).map((_, i) => {
               const leg = legs[i];
               if (leg) {
                 return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: legs are strictly sequential and never reordered
                   <div key={i} className={`leg ${leg.ok ? "ok" : "bad"}`}>
                     <div className="leg-head">
                       {leg.title}
-                      {leg.status != null && <span className={`pill ${leg.status === 402 ? "b402" : leg.status === 200 ? "b200" : ""}`}>{leg.status}</span>}
+                      {leg.status != null && (
+                        <span
+                          className={`pill ${leg.status === 402 ? "b402" : leg.status === 200 ? "b200" : ""}`}
+                        >
+                          {leg.status}
+                        </span>
+                      )}
                     </div>
                     <pre className="leg-body">{leg.detail}</pre>
                   </div>
@@ -326,13 +417,16 @@ export function App() {
               // 保留中のレッグ → ローダープレースホルダー
               const inFlight = i === legs.length; // 次のレッグが今実行中
               return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: legs are strictly sequential and never reordered
                 <div key={i} className="leg pending">
                   <div className="leg-head">
                     {LEG_TITLES[i] ?? `${i + 1} · …`}
                     {inFlight && <span className="spinner" />}
                   </div>
                   <div className="leg-body skeleton">
-                    <span /><span /><span />
+                    <span />
+                    <span />
+                    <span />
                   </div>
                 </div>
               );
@@ -348,48 +442,74 @@ export function App() {
         {tally && (
           <div className="tally">
             <div className="tally-top">
-              <span className="tally-count">{tally.total}<span className="of"> / {tally.target}</span></span>
-              <span className="tally-label">unpaid requests · every one → <span className="pill b402">402</span></span>
+              <span className="tally-count">
+                {tally.total}
+                <span className="of"> / {tally.target}</span>
+              </span>
+              <span className="tally-label">
+                unpaid requests · every one → <span className="pill b402">402</span>
+              </span>
             </div>
-            {Object.entries(tally.byClient).filter(([, e]) => e.n > 0 || tally.total < tally.target).map(([ua, e]) => {
-              const max = Math.max(1, ...Object.values(tally.byClient).map((x) => x.n));
-              return (
-                <div key={ua} className="bar-row">
-                  <span className="bar-name" title={ua}>{shortUA(ua)}</span>
-                  <span className="bar-track"><span className="bar-fill" style={{ width: `${(e.n / max) * 100}%` }} /></span>
-                  <span className="bar-n">{e.n}</span>
-                </div>
-              );
-            })}
+            {Object.entries(tally.byClient)
+              .filter(([, e]) => e.n > 0 || tally.total < tally.target)
+              .map(([ua, e]) => {
+                const max = Math.max(1, ...Object.values(tally.byClient).map((x) => x.n));
+                return (
+                  <div key={ua} className="bar-row">
+                    <span className="bar-name" title={ua}>
+                      {shortUA(ua)}
+                    </span>
+                    <span className="bar-track">
+                      <span className="bar-fill" style={{ width: `${(e.n / max) * 100}%` }} />
+                    </span>
+                    <span className="bar-n">{e.n}</span>
+                  </div>
+                );
+              })}
           </div>
         )}
         {payTally && (
           <div className="tally">
             <div className="tally-legend">
-              <span><i className="seg req" /> requested (402)</span>
-              <span><i className="seg paid" /> paid (signed)</span>
-              <span><i className="seg set" /> settled (200)</span>
+              <span>
+                <i className="seg req" /> requested (402)
+              </span>
+              <span>
+                <i className="seg paid" /> paid (signed)
+              </span>
+              <span>
+                <i className="seg set" /> settled (200)
+              </span>
             </div>
-            {Object.entries(payTally.byClient).filter(([, f]) => f.planned > 0).map(([ua, f]) => {
-              // 3 つのレイヤー、それぞれ左端に固定し、幅は計画合計に対する累積数
-              //（決済済み ⊆ 支払済み ⊆ 要求済み）。z-index でスタック：琥珀（要求済み）が後ろ、
-              // 紫（支払済み）がその上、緑（決済済み）が最前面。各バンドはステージが進むにつれて
-              // 左→右に成長し、累積数が異なるため緑|紫|琥珀|空のバンドが見えます。
-              // 後ろのグレーのトラックは計画（保留中）合計 — フレーム 1 から表示されます。
-              const d = Math.max(1, f.planned);
-              const pct = (n: number) => `${(Math.max(0, n) / d) * 100}%`;
-              return (
-                <div key={ua} className="bar-row">
-                  <span className="bar-name" title={ua}>{shortUA(ua)}</span>
-                  <span className="bar-track stacked" title={`planned ${f.planned} · requested ${f.requested} · paid ${f.paid} · settled ${f.settled}`}>
-                    <span className="seg req" style={{ width: pct(f.requested) }} />
-                    <span className="seg paid" style={{ width: pct(f.paid) }} />
-                    <span className="seg set" style={{ width: pct(f.settled) }} />
-                  </span>
-                  <span className="bar-n">{f.settled}/{f.planned}</span>
-                </div>
-              );
-            })}
+            {Object.entries(payTally.byClient)
+              .filter(([, f]) => f.planned > 0)
+              .map(([ua, f]) => {
+                // 3 つのレイヤー、それぞれ左端に固定し、幅は計画合計に対する累積数
+                //（決済済み ⊆ 支払済み ⊆ 要求済み）。z-index でスタック：琥珀（要求済み）が後ろ、
+                // 紫（支払済み）がその上、緑（決済済み）が最前面。各バンドはステージが進むにつれて
+                // 左→右に成長し、累積数が異なるため緑|紫|琥珀|空のバンドが見えます。
+                // 後ろのグレーのトラックは計画（保留中）合計 — フレーム 1 から表示されます。
+                const d = Math.max(1, f.planned);
+                const pct = (n: number) => `${(Math.max(0, n) / d) * 100}%`;
+                return (
+                  <div key={ua} className="bar-row">
+                    <span className="bar-name" title={ua}>
+                      {shortUA(ua)}
+                    </span>
+                    <span
+                      className="bar-track stacked"
+                      title={`planned ${f.planned} · requested ${f.requested} · paid ${f.paid} · settled ${f.settled}`}
+                    >
+                      <span className="seg req" style={{ width: pct(f.requested) }} />
+                      <span className="seg paid" style={{ width: pct(f.paid) }} />
+                      <span className="seg set" style={{ width: pct(f.settled) }} />
+                    </span>
+                    <span className="bar-n">
+                      {f.settled}/{f.planned}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         )}
       </section>

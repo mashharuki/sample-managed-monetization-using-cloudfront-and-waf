@@ -1,11 +1,13 @@
+import { execSync } from "node:child_process";
+import * as path from "node:path";
 import {
   CfnOutput,
   DockerImage,
   Duration,
-  ILocalBundling,
+  type ILocalBundling,
   RemovalPolicy,
   Stack,
-  StackProps,
+  type StackProps,
 } from "aws-cdk-lib";
 import {
   AllowedMethods,
@@ -25,9 +27,7 @@ import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3";
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import { CfnWebACL } from "aws-cdk-lib/aws-wafv2";
-import { execSync } from "child_process";
-import { Construct } from "constructs";
-import * as path from "path";
+import type { Construct } from "constructs";
 import { BASE_SEPOLIA_USDC, buildRules, monetizationConfig } from "./monetize/monetization";
 import { ROUTES } from "./routes";
 import { resolveSellerPayTo } from "./seller-payto";
@@ -44,12 +44,11 @@ const OUTDIR = "__OUTDIR__";
  * MonetizationStack用のCDKスタックファイル
  */
 export class MonetizationStack extends Stack {
-
   /**
    * コンストラクター
-   * @param scope 
-   * @param id 
-   * @param props 
+   * @param scope
+   * @param id
+   * @param props
    */
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -107,7 +106,7 @@ export class MonetizationStack extends Stack {
       rules: [], // 後で注入（Monetize アクションはまだ型定義されていない）
     });
     const metricPrefix = id.toLowerCase();
-    
+
     // ここでMoneize ルールを導入
     const monetizeRoutes = ROUTES.map((r) => ({
       path: r.path,
@@ -146,9 +145,7 @@ export class MonetizationStack extends Stack {
         viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: edgeCachePolicy,
         allowedMethods: AllowedMethods.ALLOW_GET_HEAD,
-        functionAssociations: [
-          { function: edgeFn, eventType: FunctionEventType.VIEWER_REQUEST },
-        ],
+        functionAssociations: [{ function: edgeFn, eventType: FunctionEventType.VIEWER_REQUEST }],
       });
     }
 
@@ -169,7 +166,12 @@ export class MonetizationStack extends Stack {
       environment: {
         ALLOWED_TARGETS: ROUTES.map((r) => r.path).join(","),
       },
-      bundling: { minify: true, sourceMap: false, target: "es2022", externalModules: ["@aws-sdk/*"] },
+      bundling: {
+        minify: true,
+        sourceMap: false,
+        target: "es2022",
+        externalModules: ["@aws-sdk/*"],
+      },
     });
     const proxyUrl = proxyFn.addFunctionUrl({
       authType: FunctionUrlAuthType.AWS_IAM,

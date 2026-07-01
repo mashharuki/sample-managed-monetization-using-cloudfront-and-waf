@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  createPublicClient,
-  formatUnits,
-  http,
-  type Address,
-  type Hex,
-} from "viem";
+import { type Address, createPublicClient, formatUnits, type Hex, http } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { config } from "./config";
@@ -115,21 +109,18 @@ export function useWallets() {
     setActive(id);
   }, []);
 
-  const remove = useCallback(
-    (id: string) => {
-      const next = load().filter((w) => w.id !== id);
-      const ensured = next.length ? next : [mint()];
-      save(ensured);
-      let nextActive = localStorage.getItem(LS_ACTIVE);
-      if (nextActive === id || !ensured.find((w) => w.id === nextActive)) {
-        nextActive = ensured[0].id;
-        localStorage.setItem(LS_ACTIVE, nextActive);
-      }
-      setWallets(ensured);
-      setActive(nextActive);
-    },
-    [],
-  );
+  const remove = useCallback((id: string) => {
+    const next = load().filter((w) => w.id !== id);
+    const ensured = next.length ? next : [mint()];
+    save(ensured);
+    let nextActive = localStorage.getItem(LS_ACTIVE);
+    if (nextActive === id || !ensured.find((w) => w.id === nextActive)) {
+      nextActive = ensured[0].id;
+      localStorage.setItem(LS_ACTIVE, nextActive);
+    }
+    setWallets(ensured);
+    setActive(nextActive);
+  }, []);
 
   return { wallets, active, balances, refreshBalance, regenerate, use, remove };
 }

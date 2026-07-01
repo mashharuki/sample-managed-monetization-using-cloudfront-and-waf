@@ -8,8 +8,7 @@
  * レッグ 2 の署名済みペイロードが見えるよう、wrapFetchWithPayment のブラックボックスを
  * 使わずに @x402/core クライアントを直接操作します。
  */
-import type { Hex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+
 import { x402Client } from "@x402/core/client";
 import {
   decodePaymentRequiredHeader,
@@ -17,6 +16,8 @@ import {
   encodePaymentSignatureHeader,
 } from "@x402/core/http";
 import { ExactEvmScheme } from "@x402/evm";
+import type { Hex } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 const BASE_SEPOLIA_CAIP2 = "eip155:84532";
 
@@ -38,7 +39,8 @@ export async function payRoundTrip(
   legDelayMs = 0, // バースト時にファネルの各ステージが見えるよう、レッグ間の待機時間
 ): Promise<RoundTrip> {
   const legs: Leg[] = [];
-  const sleep = (ms: number) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve());
+  const sleep = (ms: number) =>
+    ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
   const emit = async (leg: Leg) => {
     legs.push(leg);
     onLeg?.(leg);

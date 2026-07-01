@@ -8,7 +8,7 @@
   },
   "scripts": {
     "synth": "cdk synth",
-    "deploy": "cdk deploy --outputs-file ../cdk-outputs.json",
+    "deploy": "cdk deploy --outputs-file ../../cdk-outputs.json",
     "destroy": "cdk destroy"
   },
   "devDependencies": {
