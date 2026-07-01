@@ -16,7 +16,7 @@ const CACHE_FILE = path.join(__dirname, "..", ".seller-payto.json");
 
 /**
  * アドレスをjsonファイルに書き込む
- * @returns 
+ * @returns
  */
 export function resolveSellerPayTo(): string {
   if (fs.existsSync(CACHE_FILE)) {
