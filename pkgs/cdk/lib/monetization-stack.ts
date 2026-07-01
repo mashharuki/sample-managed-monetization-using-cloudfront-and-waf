@@ -1,3 +1,5 @@
+import { execSync } from "node:child_process";
+import * as path from "node:path";
 import {
   CfnOutput,
   DockerImage,
@@ -26,8 +28,6 @@ import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3"
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import { CfnWebACL } from "aws-cdk-lib/aws-wafv2";
 import type { Construct } from "constructs";
-import { execSync } from "node:child_process";
-import * as path from "node:path";
 import {
   CACHE_DEFAULT_TTL_SEC,
   CACHE_MAX_TTL_SEC,

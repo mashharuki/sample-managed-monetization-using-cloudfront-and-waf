@@ -1,17 +1,11 @@
 /** CfnOutput の description 文字列。 */
 export const OUTPUT_DESCRIPTIONS = {
-  DISTRIBUTION_URL:
-    "これを開いてください — 購入者ページ（無料ランディング + x402 デモ）。",
-  PAID_ENDPOINTS:
-    "有料エンドポイント。`curl -i` で WAF の生の 402 レスポンスを確認できます。",
-  SELLER_PAY_TO:
-    "WAF が支払いを決済するアドレス（Base Sepolia テストネット）。",
-  FAUCET_URL:
-    "ここでブラウザ内の購入者ウォレットにテストネット USDC を補充します。",
-  WAF_MONETIZATION_CONSOLE:
-    "AWS WAF コンソール — この WebACL の AI 収益/収益化ビュー。",
-  WAF_TRAFFIC_CONSOLE:
-    "AWS WAF コンソール — この WebACL のライブ AI トラフィック。",
+  DISTRIBUTION_URL: "これを開いてください — 購入者ページ（無料ランディング + x402 デモ）。",
+  PAID_ENDPOINTS: "有料エンドポイント。`curl -i` で WAF の生の 402 レスポンスを確認できます。",
+  SELLER_PAY_TO: "WAF が支払いを決済するアドレス（Base Sepolia テストネット）。",
+  FAUCET_URL: "ここでブラウザ内の購入者ウォレットにテストネット USDC を補充します。",
+  WAF_MONETIZATION_CONSOLE: "AWS WAF コンソール — この WebACL の AI 収益/収益化ビュー。",
+  WAF_TRAFFIC_CONSOLE: "AWS WAF コンソール — この WebACL のライブ AI トラフィック。",
 } as const;
 
 /** localBundling などで throw するエラーメッセージ。 */
