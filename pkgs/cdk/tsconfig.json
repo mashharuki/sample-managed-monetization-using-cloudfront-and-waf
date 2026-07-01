@@ -13,6 +13,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["bin/**/*.ts", "lib/**/*.ts"],
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "utils/routes.ts"],
   "exclude": ["node_modules", "cdk.out"]
 }

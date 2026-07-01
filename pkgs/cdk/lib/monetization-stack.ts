@@ -1,5 +1,3 @@
-import { execSync } from "node:child_process";
-import * as path from "node:path";
 import {
   CfnOutput,
   DockerImage,
@@ -28,8 +26,10 @@ import { BlockPublicAccess, Bucket, BucketEncryption } from "aws-cdk-lib/aws-s3"
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import { CfnWebACL } from "aws-cdk-lib/aws-wafv2";
 import type { Construct } from "constructs";
+import { execSync } from "node:child_process";
+import * as path from "node:path";
+import { ROUTES } from "../utils/routes";
 import { BASE_SEPOLIA_USDC, buildRules, monetizationConfig } from "./monetize/monetization";
-import { ROUTES } from "./routes";
 import { resolveSellerPayTo } from "./seller-payto";
 
 /** パス → WAF メトリクス/ルール名に使える安全なトークンに変換（"/main.html" → "main-html"）。 */
@@ -257,7 +257,10 @@ export class MonetizationStack extends Stack {
       ],
     });
 
+    // ==================================================================
     // 8. 出力値。
+    // ==================================================================
+
     new CfnOutput(this, "DistributionUrl", {
       value: baseUrl,
       description: "これを開いてください — 購入者ページ（無料ランディング + x402 デモ）。",
