@@ -12,14 +12,7 @@
  *   - デフォルトアクション = Allow（"/" のランディングページは無料）
  *   - /weather に 1 つの Monetize ルール → すべてのリクエストが 402 → 支払い → 200
  */
-
-/** Base Sepolia USDC コントラクト — 購入者が支払いに使用するトークン。 */
-export const BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
-
-/** Bot Control マネージドルールグループのバージョン。v6 以上必須（グループのデフォルトは v1）。
- *  v6 は AI トラフィックビューに表示される AI ボットの組織/カテゴリ/検証ラベルを持ちます。
- *  Count（オーバーライド）で実行してブロックせずにラベル付けのみ行います。 */
-export const BOT_CONTROL_VERSION = "Version_6.0";
+import { BOT_CONTROL_VERSION, DEFAULT_PRICE_USDC } from "../../utils/constants";
 
 export interface MonetizeRoute {
   /** マッチする URI プレフィックス（例: "/weather"）。 */
@@ -104,7 +97,7 @@ export function monetizationConfig(input: MonetizeInput): Record<string, unknown
         {
           Chain: "BASE_SEPOLIA",
           WalletAddress: input.walletAddress,
-          Prices: [{ Amount: input.baseAmount ?? "0.001", Currency: "USDC" }],
+          Prices: [{ Amount: input.baseAmount ?? DEFAULT_PRICE_USDC, Currency: "USDC" }],
         },
       ],
     },

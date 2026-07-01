@@ -28,9 +28,10 @@ import { CfnWebACL } from "aws-cdk-lib/aws-wafv2";
 import type { Construct } from "constructs";
 import { execSync } from "node:child_process";
 import * as path from "node:path";
+import { BASE_SEPOLIA_USDC } from "../utils/constants";
 import { ROUTES } from "../utils/routes";
 import { resolveSellerPayTo } from "../utils/seller-payto";
-import { BASE_SEPOLIA_USDC, buildRules, monetizationConfig } from "./monetize/monetization";
+import { buildRules, monetizationConfig } from "./monetize/monetization";
 
 /** パス → WAF メトリクス/ルール名に使える安全なトークンに変換（"/main.html" → "main-html"）。 */
 const metricToken = (p: string) => p.replace(/^\//, "").replace(/[^a-z0-9]+/gi, "-");
