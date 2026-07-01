@@ -19,6 +19,7 @@ import { ExactEvmScheme } from "@x402/evm";
 import type { Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+// Base SepoliaのブロックチェーンID
 const BASE_SEPOLIA_CAIP2 = "eip155:84532";
 
 export type Leg = {
@@ -47,6 +48,8 @@ export async function payRoundTrip(
     await sleep(legDelayMs);
   };
   const account = privateKeyToAccount(privateKey);
+
+  // x402用のクライアントインスタンスを生成
   const client = x402Client.fromConfig({
     schemes: [{ network: BASE_SEPOLIA_CAIP2, client: new ExactEvmScheme(account) }],
   });
@@ -82,6 +85,8 @@ export async function payRoundTrip(
   const receipt = receiptHeader ? decodePaymentResponseHeader(receiptHeader) : null;
   const bodyContentType = r3.headers.get("content-type") || "text";
   const body = await r3.text();
+
+  // エミット
   await emit({
     title: "3 · Request + pay",
     status: r3.status,

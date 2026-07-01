@@ -57,6 +57,10 @@ function loadCustomUAs(): string[] {
   }
 }
 
+/**
+ * App コンポーネント
+ * @returns 
+ */
 export function App() {
   const { wallets, active, balances, refreshBalance, regenerate, use, remove } = useWallets();
 
