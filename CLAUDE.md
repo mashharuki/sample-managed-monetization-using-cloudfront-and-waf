@@ -38,6 +38,36 @@ pnpm check         # biome check --write (lint + format)
 
 There are no test suites. Verification is done via `curl -i <endpoint>` after deploy.
 
+### ローカル開発 (floci)
+
+AWS WAF の Monetize アクションを pkgs/local-server がモックするため、AWS アカウントなしでフル x402 フローをローカル実行できます。
+
+```bash
+# ターミナル 1 — floci（AWS エミュレーター）を起動
+pnpm local:up
+
+# ターミナル 2 — x402 モックサーバーを起動（ポート 3001）
+pnpm local:server
+
+# ターミナル 3 — Vite dev server（ポート 5173）
+pnpm dev
+```
+
+ブラウザで http://localhost:5173 を開くと、config.js の baseUrl が自動的に http://localhost:3001 を向くため、そのまま x402 フロー（402→署名→200）が動作します。
+
+フローの違い（本番 vs ローカル）:
+| 処理 | 本番 (AWS) | ローカル |
+|---|---|---|
+| 402 返却 | AWS WAF Monetize ルール | local-server |
+| 署名検証 | WAF が Base Sepolia で検証 | スキップ（任意の署名を受け入れ）|
+| コンテンツ生成 | CloudFront Function (edge.js) | local-server（同一ロジック）|
+| S3/Lambda | 本番 AWS | floci (ポート 4566) |
+
+```bash
+# floci 停止
+pnpm local:down
+```
+
 ---
 
 ## Architecture

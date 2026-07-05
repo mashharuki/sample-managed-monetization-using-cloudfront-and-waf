@@ -11,7 +11,11 @@
     "preview": "pnpm --filter ./pkgs/site preview",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "local:up": "docker compose -f docker-compose.local.yml up -d",
+    "local:down": "docker compose -f docker-compose.local.yml down",
+    "local:server": "pnpm --filter local-x402-server dev",
+    "local:server:install": "pnpm --filter local-x402-server install"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.2"

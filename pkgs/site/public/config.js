@@ -1,18 +1,19 @@
-// 開発専用フォールバック設定。デプロイ時に CDK が実際の config.js（ライブ CloudFront URL、
-// WebACL コンソールリンク、販売者 payTo を含む）を S3 にアップロードしてこれを上書きします。
-// Vite が public/ を dist/ にコピーするため、`npm run dev` と素のビルドでも読み込まれます。
+// ローカル開発用設定（floci local dev mode）。
+// `pnpm dev:local` 実行時に Vite dev server からこのファイルが提供されます。
+// 本番 CDK デプロイ時は BucketDeployment の Source.data() が S3 上のこのファイルを上書きします。
+// baseUrl は pkgs/local-server の x402 モックサーバーを指します。
 window.X402_CONFIG = {
-  baseUrl: "https://example.cloudfront.net",
+  baseUrl: "http://localhost:3001",
   proxyPath: "/proxy",
   routes: [
     { path: "/weather", label: "Weather (JSON)", contentType: "json" },
     { path: "/sports", label: "Sports (Markdown)", contentType: "markdown" },
     { path: "/main.html", label: "Landing (HTML)", contentType: "html" },
   ],
-  payTo: "0xe6AA1B60c4EC760668dB3C06d7A894c5Fd39D0aa",
+  payTo: "0x6A93800ADEd9E1f8a8c973145Ec19360598E7487",
   usdcAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
   chainId: 84532,
   faucetUrl: "https://faucet.circle.com/",
-  wafMonetizationUrl: "https://console.aws.amazon.com/wafv2/home",
-  wafTrafficUrl: "https://console.aws.amazon.com/wafv2/home",
+  wafMonetizationUrl: "http://localhost:3001",
+  wafTrafficUrl: "http://localhost:3001",
 };

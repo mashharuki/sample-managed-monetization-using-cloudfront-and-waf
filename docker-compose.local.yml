@@ -1,0 +1,14 @@
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: floci-x402
+    ports:
+      - "4566:4566"
+    environment:
+      FLOCI_BASE_URL: "http://localhost:4566"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_floci/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s

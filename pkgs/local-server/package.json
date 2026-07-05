@@ -1,0 +1,17 @@
+{
+  "name": "local-x402-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AWS WAF x402 Monetize アクションのローカルモック。Vite dev server と組み合わせて使用。",
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/server.ts",
+    "start": "node --experimental-strip-types src/server.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^24"
+  }
+}
