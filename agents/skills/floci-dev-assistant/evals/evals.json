@@ -1,0 +1,46 @@
+{
+  "skill_name": "floci-dev-assistant",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "FlociにAWS Translateサービスを追加したいです。まずどのAWSプロトコル（Query、JSON 1.1、REST JSONなど）を使うべきか教えてください。そして、サービスの基本的な骨格となるJavaコード（Handler、Service、Modelクラス）を作成してください。最低限 TranslateText アクションを実装してください。",
+      "expected_output": "AWS Translate は JSON 1.1 プロトコルを使用することが説明され、SsmJsonHandler に倣ったハンドラークラス、@ApplicationScoped サービスクラス、必要なモデルクラス、および ResolvedServiceCatalog への登録コードが生成される。AwsException を使ったエラー処理が含まれる。",
+      "files": [],
+      "expectations": [
+        "JSON 1.1 プロトコルを選択し、X-Amz-Target ヘッダーでルーティングすることを説明している",
+        "TranslateJsonHandler クラスまたは相当するハンドラークラスのコードが含まれている",
+        "@ApplicationScoped アノテーションのついた TranslateService クラスが含まれている",
+        "StorageFactory を使用してストレージを初期化している（InMemoryStorage の直接インスタンス化はしない）",
+        "AwsException を使ったエラーハンドリングが含まれている",
+        "ServiceDescriptor の登録コードまたはその説明が含まれている"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Floci の SSM サービスに対してインテグレーションテストを書きたいです。次の3つのシナリオをカバーするテストクラスを作成してください：\n1. パラメーターの作成（PutParameter）\n2. 存在しないパラメーターの取得でエラーが返ること（GetParameter でエラー）\n3. パラメーターの一覧取得（DescribeParameters）\n\nFloci の既存のテストパターンに沿ったコードを生成してください。",
+      "expected_output": "@QuarkusTest アノテーションが付いたテストクラスが生成される。RestAssured の given/when/then スタイルで、X-Amz-Target ヘッダーと application/x-amz-json-1.1 Content-Type が使われる。エラーレスポンスには __type フィールドの検証が含まれる。",
+      "files": [],
+      "expectations": [
+        "@QuarkusTest アノテーションが付いたテストクラスが生成されている",
+        "X-Amz-Target ヘッダーを使った RestAssured の HTTP リクエストが含まれている",
+        "Content-Type として application/x-amz-json-1.1 が使われている",
+        "エラーケースのテストで .body(\"__type\", equalTo(...)) による検証がある",
+        "DescribeParameters のレスポンス検証が含まれている",
+        "RestAssuredJsonUtils.configureAwsContentTypes() の @BeforeAll での呼び出しが含まれている"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Floci で SQS キューを作ったあとに AWS Java SDK でメッセージを送ろうとしたら、次のエラーが出ました：\n\n```\ncom.amazonaws.services.sqs.model.AmazonSQSException: The specified queue does not exist for this wsdl version. (Service: AmazonSQS; Status Code: 400; Error Code: AWS.SimpleQueueService.NonExistentQueue)\n```\n\nこれを診断・修正するための手順を教えてください。また、Floci のコードのどこを確認すればいいか具体的なファイル・クラス名で教えてください。",
+      "expected_output": "エラーコード AWS.SimpleQueueService.NonExistentQueue に注目し、SQS キューの URL 解決やルーティングの問題である可能性を診断する。SqsQueryHandler.java, SqsService.java, AwsException クラスが参照される。デバッグの手順として、ログ確認・エンドポイント設定・キューURL の確認が含まれる。",
+      "files": [],
+      "expectations": [
+        "エラーコード AWS.SimpleQueueService.NonExistentQueue に言及している",
+        "SqsQueryHandler または SqsService への具体的な参照が含まれている",
+        "エンドポイント URL の設定（--endpoint-url または SDK 設定）の確認を推奨している",
+        "Floci のログ確認またはデバッグ方法が含まれている",
+        "キューが実際に作成されているかの確認方法が含まれている"
+      ]
+    }
+  ]
+}
